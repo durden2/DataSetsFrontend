@@ -13,6 +13,7 @@ import s from './App.css';
 import Header from '../Header';
 import Feedback from '../Feedback';
 import Footer from '../Footer';
+import io from 'socket.io-client';
 
 class App extends Component {
 
@@ -51,6 +52,9 @@ class App extends Component {
   }
 
   render() {
+    console.log("dd");
+    var t = io('http://localhost:4000');
+    t.emit('chat message', "$('#m').val()");
     return !this.props.error ? (
       <div>
         <Header />
