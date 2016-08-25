@@ -28,6 +28,7 @@ import schema from './data/schema';
 import routes from './routes';
 import assets from './assets'; // eslint-disable-line import/no-unresolved
 import { port, auth } from './config';
+import io from 'socket.io-client';
 
 const app = express();
 
@@ -149,3 +150,20 @@ models.sync().catch(err => console.error(err.stack)).then(() => {
   });
 });
 /* eslint-enable no-console */
+
+//socket io
+
+    var socket = io('http://localhost:4000');
+
+    // Add a connect listener
+    socket.on('connect',function() {
+      console.log('Client has connected to the server!');
+    });
+    // Add a connect listener
+    socket.on('availableFiles',function(data) {
+      console.log('Received a message from the server!',data);
+    });
+    // Add a disconnect listener
+    socket.on('disconnect',function() {
+      console.log('The client has disconnected!');
+    });
