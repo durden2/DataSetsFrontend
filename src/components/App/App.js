@@ -11,12 +11,17 @@ import React, { Component, PropTypes } from 'react';
 import emptyFunction from 'fbjs/lib/emptyFunction';
 import s from './App.css';
 import Header from '../Header';
-import Feedback from '../Feedback';
-import Footer from '../Footer';
 import io from 'socket.io-client';
 
 class App extends Component {
 
+  constructor(props){
+    super(props);
+
+    this.state = {
+      files: [],
+    }
+  }
   static propTypes = {
     context: PropTypes.shape({
       insertCss: PropTypes.func,
@@ -52,15 +57,12 @@ class App extends Component {
   }
 
   render() {
-    console.log("dd");
     var t = io('http://localhost:4000');
     t.emit('chat message', "$('#m').val()");
     return !this.props.error ? (
       <div>
         <Header />
-        {this.props.children}
-        <Feedback />
-        <Footer />
+        <p>Available files: {this.state.files}</p>
       </div>
     ) : this.props.children;
   }
