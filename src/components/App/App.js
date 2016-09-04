@@ -20,8 +20,12 @@ class App extends Component {
 
     this.state = {
       files: [],
+      fileProperties: [],
+      activeFile: [],
+      filedsTypes: []
     }
   }
+
   static propTypes = {
     context: PropTypes.shape({
       insertCss: PropTypes.func,
@@ -47,26 +51,89 @@ class App extends Component {
     };
   }
 
-  componentWillMount() {
+  componentDidMount() {
     const { insertCss } = this.props.context;
     this.removeCss = insertCss(s);
+    var socket = io('http://localhost:4000');
+    var t = this;
+    socket.on('getFiles', function(data){
+      t._setFiles(t, data);
+    });
+
+    // Add a connect listener
+    socket.on('parsed', (data) => {
+      var fields = Object.getOwnPropertyNames(data[0]);
+      this.setState({fileProperties: fields});
+
+      var types = new Map();
+
+      var values = data[1];
+      for (var key in values) {
+        if (values.hasOwnProperty(key)) {
+          var d = new Date(values[key]);
+          console.log(!isNaN(parseFloat((values[key]))));
+          if(d.getYear() && d.getMonth() && d.getDay()){
+            types.set(key, "data");
+          } else if(isNaN(parseFloat(values[key]))){
+            types.set(key, "number");
+          } else
+          types.set(key, "string");
+        }
+      }
+console.log(types);
+      this.setState({fieldsTypes: types});
+    });
+  }
+
+  _setFiles = (t, data) =>{
+    this.setState({files: data});
+    this.availableFiles();
   }
 
   componentWillUnmount() {
     this.removeCss();
   }
 
+  availableFiles = () => {
+    var t = this.state.files.map(el => <button onClick={this.getParsed.bind({el})}>{el}</button>);
+    return t;
+  }
+
+  getFileProperties = () => {
+    return this.state.fileProperties.map(el => <tr>
+      <th>
+      {el}
+      </th>
+      <th>
+      {this.state.fieldsTypes.get(el)};
+      </th>
+      <th>
+      dzialanie
+      </th>
+      </tr>);
+  }
+
+  getParsed = (file) => {
+    this.setState({activeFile: file.target.innerHTML});
+    var socket = io('http://localhost:4000');
+    socket.emit('parse', file.target.innerHTML);
+  }
+
+
   render() {
-    var t = io('http://localhost:4000');
-    t.emit('chat message', "$('#m').val()");
+    var t = this.availableFiles();
+    var fileProp = this.getFileProperties();
     return !this.props.error ? (
       <div>
         <Header />
-        <p>Available files: {this.state.files}</p>
+        <p>Available files: {t}</p>
+        <p>Available fields in {this.state.activeFile} </p>
+        <table>
+        {fileProp}
+        </table>
       </div>
     ) : this.props.children;
   }
-
 }
 
 export default App;
