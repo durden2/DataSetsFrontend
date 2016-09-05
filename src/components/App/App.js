@@ -10,8 +10,8 @@
 import React, { Component, PropTypes } from 'react';
 import emptyFunction from 'fbjs/lib/emptyFunction';
 import s from './App.css';
-import Header from '../Header';
 import io from 'socket.io-client';
+import Select from 'react-select';
 
 class App extends Component {
 
@@ -22,7 +22,12 @@ class App extends Component {
       files: [],
       fileProperties: [],
       activeFile: [],
-      filedsTypes: []
+      filedsTypes: [],
+      values: [],
+      inputShow: false,
+      queryTypes: [{value: "equal", label: "equal"}, {value: "greater", label: "greater"}, {value: "smaller", label: "smaller"}, {value: "invariance", label: "invariance"}],
+      queryValues: [],
+      queries: []
     }
   }
 
@@ -65,25 +70,30 @@ class App extends Component {
       var fields = Object.getOwnPropertyNames(data[0]);
       this.setState({fileProperties: fields});
 
-      var types = new Map();
+      var types = new Array();
 
       var values = data[1];
       for (var key in values) {
         if (values.hasOwnProperty(key)) {
           var d = new Date(values[key]);
-          console.log(!isNaN(parseFloat((values[key]))));
           if(d.getYear() && d.getMonth() && d.getDay()){
-            types.set(key, "data");
+            types.push({value: key, label: key});
           } else if(isNaN(parseFloat(values[key]))){
-            types.set(key, "number");
+            types.push({value: key, label: key});
           } else
-          types.set(key, "string");
+          types.push({value: key, label: key});
         }
       }
-console.log(types);
       this.setState({fieldsTypes: types});
     });
+
+
+    socket.on('parsedXML', (data) => {
+      //console.log(JSON.parse(data));
+      this.iterate(data, '');
+    });
   }
+
 
   _setFiles = (t, data) =>{
     this.setState({files: data});
@@ -95,43 +105,81 @@ console.log(types);
   }
 
   availableFiles = () => {
-    var t = this.state.files.map(el => <button onClick={this.getParsed.bind({el})}>{el}</button>);
-    return t;
+    return this.state.files.map(el => <button onClick={this.getParsed.bind({el})}>{el}</button>);
   }
 
-  getFileProperties = () => {
-    return this.state.fileProperties.map(el => <tr>
-      <th>
-      {el}
-      </th>
-      <th>
-      {this.state.fieldsTypes.get(el)};
-      </th>
-      <th>
-      dzialanie
-      </th>
-      </tr>);
+
+  logChange = (val) => {
+      this.setState({values: val});
+  }
+
+  logChangeQuery = (val) => {
+    this.setState({queryValues: val});
   }
 
   getParsed = (file) => {
     this.setState({activeFile: file.target.innerHTML});
     var socket = io('http://localhost:4000');
-    socket.emit('parse', file.target.innerHTML);
+    socket.emit('parse', file.target.innerHTML)
   }
 
+formSubmitted = (e) =>
+{
+  e.preventDefault();
+  var temp = new Array();
+  var tempObject = {
+    file: this.state.activeFile,
+    field: this.state.values.value,
+    value: this.refs.queryValue.value,
+    type: this.state.queryValues.value,
+  };
+  temp.push(tempObject);
+  for(var i of this.state.queries)
+    temp.push(i);
+  this.setState({queries: temp});
+}
 
+returnSavedExp = ()  => {
+  return this.state.queries.map(el => (<span>
+    <p>Plik {el.file}</p>
+    <p>field {el.field}</p>
+    <p>value: {el.value}</p>
+    <p>type: {el.type}</p>
+    </span>));
+}
+
+build = () => {
+  console.log("du[pa]");
+  var socket = io('http://localhost:4000');
+  socket.emit('build', this.state.queries);
+}
   render() {
+    var wyrazenia = this.returnSavedExp();
     var t = this.availableFiles();
-    var fileProp = this.getFileProperties();
     return !this.props.error ? (
       <div>
-        <Header />
         <p>Available files: {t}</p>
         <p>Available fields in {this.state.activeFile} </p>
-        <table>
-        {fileProp}
-        </table>
+        <form className="form-control" onSubmit={this.formSubmitted}>
+          <Select
+              name="form-field-name"
+              options={this.state.fieldsTypes}
+              onChange={this.logChange}
+              value={this.state.values}
+          />
+          <Select
+              name="form-field-query"
+              options={this.state.queryTypes}
+              onChange={this.logChangeQuery}
+              value={this.state.queryValues}
+          />
+          <input type="text" name="valueOfQuery" ref="queryValue"/>
+          <input type="submit" className="btn btn-primary"/>
+        </form>
+        {wyrazenia}
+        <button onClick={this.build} type="button" className="btn btn-primary">Buduj raport</button>
       </div>
+
     ) : this.props.children;
   }
 }
