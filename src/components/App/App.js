@@ -118,6 +118,8 @@ class App extends Component {
   }
 
   getParsed = (file) => {
+    this.setState({fieldsTypes: []});
+    this.setState({values: []});
     this.setState({activeFile: file.target.innerHTML});
     var socket = io('http://localhost:4000');
     socket.emit('parse', file.target.innerHTML)
@@ -149,10 +151,10 @@ returnSavedExp = ()  => {
 }
 
 build = () => {
-  console.log("du[pa]");
   var socket = io('http://localhost:4000');
   socket.emit('build', this.state.queries);
 }
+
   render() {
     var wyrazenia = this.returnSavedExp();
     var t = this.availableFiles();
