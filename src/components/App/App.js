@@ -89,10 +89,17 @@ class App extends Component {
 
 
     socket.on('parsedXML', (data) => {
-      //console.log(JSON.parse(data));
-      this.iterate(data, '');
-    });
-  }
+      var fields = Object.getOwnPropertyNames(data.response.row[0].row[0]);
+
+      this.setState({fileProperties: fields});
+      var types = new Array();
+
+      for (var key of fields)
+          types.push({value: key, label: key});
+
+      this.setState({fieldsTypes: types});
+  });
+}
 
 
   _setFiles = (t, data) =>{
@@ -122,7 +129,12 @@ class App extends Component {
     this.setState({values: []});
     this.setState({activeFile: file.target.innerHTML});
     var socket = io('http://localhost:4000');
-    socket.emit('parse', file.target.innerHTML)
+    var splitted = file.target.innerHTML.split(".");
+    if(splitted[1] == "xml"){
+      socket.emit('parseXML', file.target.innerHTML);
+    }else{
+      socket.emit('parse', file.target.innerHTML);
+    }
   }
 
 formSubmitted = (e) =>
@@ -152,7 +164,12 @@ returnSavedExp = ()  => {
 
 build = () => {
   var socket = io('http://localhost:4000');
-  socket.emit('build', this.state.queries);
+  var splitted = this.state.activeFile.split(".");
+  if(splitted[1] == "xml"){
+  socket.emit('buildXML', this.state.queries);
+  } else{
+    socket.emit('build', this.state.queries);
+  }
 }
 
   render() {
@@ -175,8 +192,8 @@ build = () => {
               onChange={this.logChangeQuery}
               value={this.state.queryValues}
           />
-          <input type="text" name="valueOfQuery" ref="queryValue"/>
-          <input type="submit" className="btn btn-primary"/>
+          <input type="text" placeholder="wartosc" name="valueOfQuery" ref="queryValue"/>
+          <input type="submit" name="dodajWyrazenie" value="Dodaj ograniczenie" className="btn btn-primary"/>
         </form>
         {wyrazenia}
         <button onClick={this.build} type="button" className="btn btn-primary">Buduj raport</button>
